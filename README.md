@@ -1,15 +1,18 @@
 # jenkins-commonlib-skeleton
 
-This is a skeleton commonlib Jenkins pipeline library providing some
-bargain-basement utility functions I often need in the projects I work on.
+> A skeleton Jenkins pipeline library providing bargain-basement utility functions
+I've often needed for the projects I work on.
+
+If any of these are useful to you, fork this repo and carry it off to customize
+it for your own projects!
 
 
 
 ## Plugin Dependencies
 
+- [Ansi Color](https://plugins.jenkins.io/ansicolor) (Official)
 - [Credentials](https://plugins.jenkins.io/credentials) (Official)
 - [Pipeline Utility Steps](https://plugins.jenkins.io/pipeline-utility-steps) (Official)
-- [Ansi Color](https://plugins.jenkins.io/ansicolor) (Official)
 
 
 
@@ -30,7 +33,7 @@ bargain-basement utility functions I often need in the projects I work on.
 
 ### `constants`
 
-##### Jenkinsfile
+#### Jenkinsfile
 
 ```groovy
 library 'commonlib'
@@ -61,7 +64,7 @@ pipeline {
 }
 ```
 
-##### Console Output
+#### Console Output
 
 ```
 [commonlib.constants.init] - Initializing (domain=bravo, environment=itworksyay)
@@ -76,7 +79,7 @@ constants.IPSUM_PROFILE = delit-adipiscing
 https://lorem.itworksyay.bravo.com
 ```
 
-##### Shortcomings
+#### Shortcomings
 
 You have to call `constants.init(this)` before attempting to read properties from
 `constants`.  If not, you'll know pretty quickly as the pipeline will error-out.
@@ -96,7 +99,7 @@ run integration tests against the canary build before replacing the current
 version (i.e., releasing).
 
 
-##### Jenkinsfile
+#### Jenkinsfile
 
 ```groovy
 library 'commonlib'
@@ -149,7 +152,7 @@ pipeline {
 }
 ```
 
-##### Console Output
+#### Console Output
 
 ```
 [commonlib.cloudfoundry.deploy] Attempting to deploy 'myapp' using manifest 'manifest.yml':
@@ -177,7 +180,7 @@ Pausing so canary application at above URL can be inspected.
 [commonlib.cloudfoundry.release] Released 'myapp-b4edfb6' to 'myapp.example.com'
 ```
 
-##### Shortcomings
+#### Shortcomings
 
 - __Not__ tested with multi-app manifests, but I'm pretty sure they'll either
   break or confuse the deploy/release.

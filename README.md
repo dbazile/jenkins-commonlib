@@ -33,6 +33,20 @@ it for your own projects!
 
 ### `constants`
 
+In [resources/constants.yaml](resources/constants.yaml) you can define one set
+of constants for each `config`, e.g.,:
+
+````yaml
+alpha:
+  LOREM_URL:     'https://lorem.${environment}.alpha.com'
+  IPSUM_PROFILE: 'dolor-sit-amet'
+
+bravo:
+  LOREM_URL:     'https://lorem.${environment}.bravo.com'
+  IPSUM_PROFILE: 'delit-adipiscing'
+
+````
+
 #### Jenkinsfile
 
 ```groovy

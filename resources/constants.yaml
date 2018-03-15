@@ -1,0 +1,7 @@
+alpha:
+  LOREM_URL:     'https://lorem.${environment}.alpha.com'
+  IPSUM_PROFILE: 'dolor-sit-amet'
+
+bravo:
+  LOREM_URL:     'https://lorem.${environment}.bravo.com'
+  IPSUM_PROFILE: 'delit-adipiscing'

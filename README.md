@@ -1,4 +1,4 @@
-# jenkins-commonlib-skeleton
+# jenkins-commonlib
 
 > A skeleton Jenkins pipeline library providing bargain-basement utility functions
 I've often needed for the projects I work on.

@@ -1,3 +1,55 @@
+/**
+ * Provides bargain-basement blue-green deployments into CloudFoundry.
+ *
+ * <p>This module splits the deploy process into two stages: `deploy`
+ * and `release`.  Deploy will push a new app that can theoretically run
+ * side-by-side with the current release so you can run integration
+ * tests against the canary build before replacing the current version
+ * (i.e., releasing).
+ *
+ * <p>Usage:
+ *
+ * <pre>
+ *     _canaryRoute = cloudfoundry.deploy(
+ *         api:           'https://api.sys.example.com',
+ *         credentialsId: 'cloudfoundry',
+ *         domain:        'dev.example.com',
+ *         space:         'dev',
+ *         organization:  'myapp',
+ *         name:          'myapp',
+ *         manifest:      'manifest.yml',
+ *         props: [
+ *             'FOO': 'test-foo',
+ *             'BAR': 'test-bar',
+ *         ],
+ *     )
+ *
+ *     echo "CANARY URL: 'https://$_canaryRoute'"
+ *
+ *     input "Pausing so canary application at above URL can be inspected."
+ *
+ *     _releaseRoute = cloudfoundry.release(
+ *         api:           'https://api.sys.example.com',
+ *         credentialsId: 'cloudfoundry',
+ *         domain:        'dev.example.com',
+ *         space:         'dev',
+ *         organization:  'myapp',
+ *         name:          'myapp',
+ *         manifest:      'manifest.yml',
+ *     )
+ *
+ *     echo "RELEASE URL: 'https://$_releaseRoute'"
+ * </pre>
+ *
+ * @param api            CF API URL
+ * @param credentialsId  Credential ID to use with CF API
+ * @param domain         CF domain to deploy to
+ * @param manifest       Path to manifest file
+ * @param name           Name of application
+ * @param organization   Organization to deploy under
+ * @param space          Space to deploy into
+ * @param props          Extra properties to add to deployed app
+ */
 def deploy(Map args) {
     def DEFAULTS = [
         api:           '',

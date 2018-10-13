@@ -175,9 +175,9 @@ def do_tag(version):
 
 def ensure_clean_working_copy():
     try:
-        modified_files = execute(['git', 'diff', '--stat'])
+        modified_files = execute(['git', 'status', '--short'])
         if modified_files:
-            fatal_error('cannot proceed with uncommitted changes')
+            fatal_error('cannot proceed with uncommitted changes', files=modified_files)
     except subprocess.CalledProcessError as err:
         fatal_error('could not check for uncommitted changes', cmd=err.cmd, output=err.output)
 

@@ -30,6 +30,69 @@ it for your own projects!
 ## Usage
 
 
+### `commonPipeline`
+
+Mostly unopinionated general-purpose build wrapper with some simple
+defaults and override hooks.
+
+
+#### Jenkinsfile
+
+```groovy
+library 'commonlib'
+
+node {
+
+    //
+    // Just go with the defaults
+    //
+
+    commonPipeline {
+        stage('Init') {
+            deleteDir()
+            checkout scm
+        }
+
+        stage('Test') {
+            sh 'gradle test'
+        }
+
+        stage('Archive') {
+            archive 'build/libs'
+        }
+    }
+
+    //
+    // Customize everything for... reasons
+    //
+
+    commonPipeline(
+        junitResults: 'build/test-results/**/*.xml',
+        timeout:      15,
+        triggers: [
+            cron('*/5 * * * *'),
+        ],
+        params: [
+            file(name: 'KEYSTORE'),
+            password(name: 'KEYSTORE_PASS', defaultValue: ''),
+        ],
+    ) {
+        stage('Init') {
+            deleteDir()
+            checkout scm
+        }
+
+        stage('Test') {
+            sh 'gradle test'
+        }
+
+        stage('Archive') {
+            archive 'build/libs'
+        }
+    }
+
+}
+```
 
 ### `constants`
 

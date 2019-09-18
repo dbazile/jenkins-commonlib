@@ -67,7 +67,8 @@ def call(Map args = [:], Closure buildStages) {
     catch(Exception e) {
         currentBuild.result = 'FAILED'
 
-        error("[commonlib.commonPipeline] Failed: ${e}")
+        echo("[commonlib.commonPipeline] Failed: ${e}")
+        throw e
     }
     finally {
         _collectTestResults(junitResults)
@@ -102,7 +103,8 @@ private void _configureProperties(List params_, List triggers, boolean concurren
         properties(items)
     }
     catch(Exception e) {
-        error("[commonlib.commonPipeline] Could not configure job properties: $e")
+        echo("[commonlib.commonPipeline] Could not configure job properties: $e")
+        throw e
     }
 }
 

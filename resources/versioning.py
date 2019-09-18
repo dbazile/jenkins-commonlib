@@ -217,6 +217,8 @@ def fatal_error(message, *args, **extras):
 def get_artifact_info():
     """
     :rtype: str, str, str
+
+    Note, to get this info from Maven try `mvn help:evaluate <<< '${project.groupId}:${project.artifactId}:${project.version}' | grep -v '^\['`
     """
     gradle_props = {}
     for line in execute(['gradle', 'properties', '-q']).splitlines():
@@ -284,27 +286,27 @@ def parse_version(version):
 
 
 def print_blue(message, *args):
-    print('[versioning] \033[34m{}\033[0m'.format(message.format(*args)))
+    print('[commonlib.versioning] \033[34m{}\033[0m'.format(message.format(*args)))
 
 
 def print_bold(message, *args):
-    print('[versioning] \033[1m{}\033[0m'.format(message.format(*args)))
+    print('[commonlib.versioning] \033[1m{}\033[0m'.format(message.format(*args)))
 
 
 def print_dim(message, *args):
-    print('[versioning] \033[2m{}\033[0m'.format(message.format(*args)))
+    print('[commonlib.versioning] \033[2m{}\033[0m'.format(message.format(*args)))
 
 
 def print_green(message, *args):
-    print('[versioning] \033[32m{}\033[0m'.format(message.format(*args)))
+    print('[commonlib.versioning] \033[32m{}\033[0m'.format(message.format(*args)))
 
 
 def print_red(message, *args):
-    print('[versioning] \033[31m{}\033[0m'.format(message.format(*args)))
+    print('[commonlib.versioning] \033[31m{}\033[0m'.format(message.format(*args)))
 
 
 def print_yellow(message, *args):
-    print('[versioning] \033[33m{}\033[0m'.format(message.format(*args)))
+    print('[commonlib.versioning] \033[33m{}\033[0m'.format(message.format(*args)))
 
 
 def to_next_version(current_version):

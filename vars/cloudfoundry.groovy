@@ -1,23 +1,22 @@
-/**
+/*
  * Provides bargain-basement blue-green deployments into CloudFoundry.
  *
- * <p>This module splits the deploy process into two stages: `deploy`
+ * This module splits the deploy process into two stages: `deploy`
  * and `release`.  Deploy will push a new app that can theoretically run
  * side-by-side with the current release so you can run integration
  * tests against the canary build before replacing the current version
  * (i.e., releasing).
  *
- * <p>Usage:
+ * Usage:
  *
- * <pre>
  *     _canaryRoute = cloudfoundry.deploy(
- *         api:           'https://api.sys.example.com',
- *         credentialsId: 'cloudfoundry',
- *         domain:        'dev.example.com',
- *         space:         'dev',
- *         organization:  'myapp',
- *         name:          'myapp',
- *         manifest:      'manifest.yml',
+ *         api:          'https://api.sys.example.com',
+ *         credentialId: 'cloudfoundry',
+ *         domain:       'dev.example.com',
+ *         space:        'dev',
+ *         organization: 'myapp',
+ *         name:         'myapp',
+ *         manifest:     'manifest.yml',
  *         props: [
  *             'FOO': 'test-foo',
  *             'BAR': 'test-bar',
@@ -29,52 +28,52 @@
  *     input "Pausing so canary application at above URL can be inspected."
  *
  *     _releaseRoute = cloudfoundry.release(
- *         api:           'https://api.sys.example.com',
- *         credentialsId: 'cloudfoundry',
- *         domain:        'dev.example.com',
- *         space:         'dev',
- *         organization:  'myapp',
- *         name:          'myapp',
- *         manifest:      'manifest.yml',
+ *         api:          'https://api.sys.example.com',
+ *         credentialId: 'cloudfoundry',
+ *         domain:       'dev.example.com',
+ *         space:        'dev',
+ *         organization: 'myapp',
+ *         name:         'myapp',
+ *         manifest:     'manifest.yml',
  *     )
  *
  *     echo "RELEASE URL: 'https://$_releaseRoute'"
- * </pre>
- *
- * @param api            CF API URL
- * @param credentialsId  Credential ID to use with CF API
- * @param domain         CF domain to deploy to
- * @param manifest       Path to manifest file
- * @param name           Name of application
- * @param organization   Organization to deploy under
- * @param space          Space to deploy into
- * @param props          Extra properties to add to deployed app
+ */
+
+
+/**
+ * @param args.api           CF API URL
+ * @param args.credentialId  Credential ID to use with CF API
+ * @param args.domain        CF domain to deploy to
+ * @param args.manifest      Path to manifest file
+ * @param args.name          Name of application
+ * @param args.organization  Organization to deploy under
+ * @param args.space         Space to deploy into
+ * @param args.props         Extra properties to add to deployed app
  */
 def deploy(Map args) {
-    def DEFAULTS = [
-        api:           '',
-        credentialsId: '',
-        domain:        '',
-        manifest:      'manifest.yml',
-        name:          '',
-        organization:  '',
-        space:         '',
-        props:         [:],
-    ]
+    args = [
+        api:          '',
+        credentialId: '',
+        domain:       '',
+        manifest:     'manifest.yml',
+        name:         '',
+        organization: '',
+        space:        '',
+        props:        [:],
+    ] << args
 
     //
     // Validate & normalize args
     //
 
-    args = DEFAULTS << args
-
-    def api           = _readString(args, 'api')
-    def credentialsId = _readString(args, 'credentialsId')
-    def domain        = _readString(args, 'domain')
-    def manifest      = _readString(args, 'manifest')
-    def name          = _readString(args, 'name').replaceAll('[^A-Za-z0-9-]+', '-')
-    def organization  = _readString(args, 'organization')
-    def space         = _readString(args, 'space')
+    def api          = _readString(args, 'api')
+    def credentialId = _readString(args, 'credentialId')
+    def domain       = _readString(args, 'domain')
+    def manifest     = _readString(args, 'manifest')
+    def name         = _readString(args, 'name').replaceAll('[^A-Za-z0-9-]+', '-')
+    def organization = _readString(args, 'organization')
+    def space        = _readString(args, 'space')
 
     if (args.props) {
         _fillPlaceholders(args.manifest, args.props)
@@ -90,7 +89,7 @@ def deploy(Map args) {
 
     echo("[commonlib.cloudfoundry.deploy] Attempting to deploy '${candidateName}' using manifest '${manifest}':\n\n${readFile(manifest)}\n\n")
 
-    inSession(credentialsId: credentialsId, api: api, organization: organization, space: space) {
+    inSession(credentialId: credentialId, api: api, organization: organization, space: space) {
         try {
             sh """
                 cf push ${candidateName} -f ${manifest} --hostname ${candidateName} --no-start
@@ -119,31 +118,32 @@ def deploy(Map args) {
 }
 
 
+/**
+ * @param args.api           CF API URL
+ * @param args.credentialId  Credential ID to use with CF API
+ * @param args.organization  Organization to deploy under
+ * @param args.space         Space to deploy into
+ */
 def inSession(Map args, callback) {
-    def DEFAULTS = [
-        credentialsId: '',
-        api: '',
+    args = [
+        api:          '',
+        credentialId: '',
         organization: '',
-        space: '',
-    ]
+        space:        '',
+    ] << args
 
-    //
-    // Validate & normalize args
-    //
-
-    args = DEFAULTS << args
-
+    // Parse arguments
     def api           = _readString(args, 'api')
-    def credentialsId = _readString(args, 'credentialsId')
+    def credentialId  = _readString(args, 'credentialId')
     def organization  = _readString(args, 'organization')
     def space         = _readString(args, 'space')
 
-    echo("[commonlib.cloudfoundry.inSession] Logging into CloudFoundry (credentialsId=${credentialsId}, api=${api})")
+    echo("[commonlib.cloudfoundry.inSession] Logging into CloudFoundry (credentialId=${credentialId}, api=${api})")
 
     env.CF_HOME = "${env.WORKSPACE}/.cf"
 
     ansiColor('xterm') {
-        withCredentials([usernamePassword(credentialsId: credentialsId, usernameVariable: 'PCF_USER', passwordVariable: 'PCF_PASS')]) {
+        withCredentials([usernamePassword(credentialsId: credentialId, usernameVariable: 'PCF_USER', passwordVariable: 'PCF_PASS')]) {
             try {
                 sh """
                     mkdir -p \$CF_HOME
@@ -162,33 +162,40 @@ def inSession(Map args, callback) {
 }
 
 
+/**
+ * @param args.api           CF API URL
+ * @param args.credentialId  Credential ID to use with CF API
+ * @param args.domain        CF domain to deploy to
+ * @param args.manifest      Path to manifest file
+ * @param args.name          Name of application
+ * @param args.organization  Organization to deploy under
+ * @param args.space         Space to deploy into
+ */
 def release(Map args) {
-    def DEFAULTS = [
-        api:           '',
-        credentialsId: '',
-        domain:        '',
-        manifest:      'manifest.yml',
-        name:          '',
-        organization:  '',
-        space:         '',
-    ]
+    args = [
+        api:          '',
+        credentialId: '',
+        domain:       '',
+        manifest:     'manifest.yml',
+        name:         '',
+        organization: '',
+        space:        '',
+    ] << args
 
     //
     // Validate & normalize args
     //
 
-    args = DEFAULTS << args
-
     def api           = _readString(args, 'api')
-    def credentialsId = _readString(args, 'credentialsId')
+    def credentialId  = _readString(args, 'credentialId')
     def domain        = _readString(args, 'domain')
     def manifest      = _readString(args, 'manifest')
     def name          = _readString(args, 'name').replaceAll('[^A-Za-z0-9-]+', '-')
     def organization  = _readString(args, 'organization')
     def space         = _readString(args, 'space')
 
-    def version = _getVersion()
-    def unrouted = _appIsUnrouted(name, manifest)
+    def version       = _getVersion()
+    def unrouted      = _appIsUnrouted(name, manifest)
 
     def candidateName = "$name-$version"
 
@@ -196,10 +203,9 @@ def release(Map args) {
     // Perform release
     //
 
-
     echo("[commonlib.cloudfoundry.release] Attempting to release '$candidateName'")
 
-    inSession(credentialsId: credentialsId, api: api, organization: organization, space: space) {
+    inSession(credentialId: credentialId, api: api, organization: organization, space: space) {
         try {
             if (!unrouted) {
                 sh "cf map-route ${candidateName} ${domain} --hostname ${name}"
@@ -231,12 +237,17 @@ def release(Map args) {
 }
 
 
-def _appExists(String name) {
+//
+// Helpers
+//
+
+
+private boolean _appExists(String name) {
     return sh(script: "cf app --guid ${name} >/dev/null 2>&1", returnStatus: true) == 0
 }
 
 
-def _appIsUnrouted(String name, String manifest) {
+private boolean _appIsUnrouted(String name, String manifest) {
     try {
         def app = readYaml(file: manifest).applications?.find({a -> a.name == name})
         if (!app) {
@@ -250,7 +261,7 @@ def _appIsUnrouted(String name, String manifest) {
 }
 
 
-def _fillPlaceholders(String filepath, Map props) {
+private void _fillPlaceholders(String filepath, Map props) {
     try {
         def contents = readFile(filepath)
 
@@ -269,7 +280,7 @@ def _fillPlaceholders(String filepath, Map props) {
 }
 
 
-def _getVersion() {
+private String _getVersion() {
     try {
         return sh(script: 'git rev-parse --short HEAD', returnStdout: true).trim()
     }
@@ -279,7 +290,7 @@ def _getVersion() {
 }
 
 
-def _readString(Map args, String key, boolean required = true) {
+private String _readString(Map args, String key, boolean required = true) {
     def value = args.get(key, '')
 
     if (!(value in String || value in GString)) {

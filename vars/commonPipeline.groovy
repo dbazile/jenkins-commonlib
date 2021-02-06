@@ -2,43 +2,58 @@
  * Mostly unopinionated general-purpose build wrapper with some simple
  * defaults and override hooks.
  *
- * <p>Usage:
+ * Usage:
  *
- * <pre>
  *     commonPipeline(timeout: 1234, triggers: [ ... ]) {
  *         stage('Foo') { ... }
  *     }
- * </pre>
- *
- * @param concurrency   If true, enables this job to build concurrently
- * @param junitResults  Glob pattern for junit test results
- * @param timeout       Maximum number of minutes this job should run
- * @param triggers      Argument to <code>pipelineTriggers()</code>
- * @param params        Argument to <code>parameters()</code>
- *
- * @param buildStages   Closure that should contain actual build stages
+ */
+
+
+import org.jenkinsci.plugins.workflow.steps.FlowInterruptedException
+
+
+/**
+ * @param args.concurrency   If true, enables this job to build concurrently
+ * @param args.junitResults  Glob pattern for junit test results
+ * @param args.timeout       Maximum number of minutes this job should run
+ * @param args.triggers      Argument to <code>pipelineTriggers()</code>
+ * @param args.params        Argument to <code>parameters()</code>
+ * @param buildStages        Closure that should contain actual build stages
  */
 def call(Map args = [:], Closure buildStages) {
-    def DEFAULTS = [
+    args = [
         concurrency:  false,
         junitResults: 'build/test-results/**/*.xml',
-        timeout:      15,
+        timeout:      10,
 
         params: [
-            string(name: 'VERSION', description: '', defaultValue: '', trim: true),
-            booleanParam(name: 'SKIP_SCANS', description: '', defaultValue: false)
+            string(
+                name:         'GIT_REF',
+                description:  '',
+                defaultValue: '',
+                trim:         true,
+            ),
+            booleanParam(
+                name:         'SKIP_SCANS',
+                description:  '',
+                defaultValue: false,
+            ),
+            booleanParam(
+                name:         'SKIP_TESTS',
+                description:  '',
+                defaultValue: false,
+            ),
         ],
 
         triggers: [
             pollSCM(''),
         ],
-    ]
+    ] << args
 
     //
     // Validate & normalize args
     //
-
-    args = DEFAULTS + args
 
     def concurrency  = _readBool(args, 'concurrency')
     def junitResults = _readString(args, 'junitResults')
@@ -51,8 +66,9 @@ def call(Map args = [:], Closure buildStages) {
     //
 
     try {
-        // notifyBitbucket()                                   // Stash Notifier plugin
-        // updateGitlabCommitStatus(name: 'build', 'running')  // GitLab plugin
+
+        // gitlab.sendStatus(state: 'running')
+        // notifyBitbucket()                           // Stash Notifier plugin
 
         _configureProperties(params_, triggers, concurrency)
 
@@ -62,21 +78,32 @@ def call(Map args = [:], Closure buildStages) {
              }
          }
 
-        currentBuild.result = 'SUCCESS'
+        // notifyBitbucket()                           // Stash Notifier plugin
+        // gitlab.sendStatus(state: 'success')
+
     }
     catch(Exception e) {
-        currentBuild.result = 'FAILED'
 
-        echo("[commonlib.commonPipeline] Failed: ${e}")
+        // gitlab.sendStatus(state: 'failed')
+        // notifyBitbucket()                           // Stash Notifier plugin
+
         throw e
+    }
+    catch(FlowInterruptedException e) {
+
+        // gitlab.sendStatus(state: 'canceled')
+        // notifyBitbucket()                           // Stash Notifier plugin
+
     }
     finally {
         _collectTestResults(junitResults)
-
-        // updateGitlabCommitStatus(name: 'build', currentBuild.result)  // GitLab plugin
-        // notifyBitbucket()                                             // Stash Notifier plugin
     }
 }
+
+
+//
+// Helpers
+//
 
 
 private void _collectTestResults(String pattern) {

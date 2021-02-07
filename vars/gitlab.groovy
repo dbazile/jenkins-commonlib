@@ -19,7 +19,7 @@ import java.net.URLEncoder
 import org.jenkinsci.plugins.workflow.steps.FlowInterruptedException
 
 
-def API_ROOT() { "https://gitlab.com/api/v4/" }
+def BASE_URL() { "https://gitlab.com" }
 
 
 /**
@@ -31,7 +31,9 @@ def API_ROOT() { "https://gitlab.com/api/v4/" }
  */
 def sendStatus(Map args=[:], Closure callback=null) {
     args = [
-        commit:       _resolveCommit(),
+        commit: env.gitlabAfter    // present on builds triggered by GL plugin's webhook
+                ?: params.GIT_REF  // job parameter that provides commit/branch/tag
+                ?: 'HEAD',         // whatever is currently checked out
         credentialId: 'gitlab-api',
         project:      _resolveProject(),
         status:       '',
@@ -46,6 +48,18 @@ def sendStatus(Map args=[:], Closure callback=null) {
     def project      = _readString(args, 'project', '^.+$')
     def status       = _readString(args, 'status')
 
+    // It's not documented but GitLab API _can_ resolve branch names and
+    // tags as long as they don't contain dots (why?)... Because of this,
+    // we resolve the commit SHA explicitly.
+    def commitSha
+    try {
+        commitSha = _resolveCommitSha(commit)
+    }
+    catch (Exception e) {
+        echo("[commonlib.gitlab] WARNING: could not resolve commit SHA from reference: $commit")
+        return
+    }
+
     if (status && callback) {
         error("[commonlib.gitlab] can't send arbitrary with block use")
     }
@@ -58,8 +72,8 @@ def sendStatus(Map args=[:], Closure callback=null) {
     //
 
     if (status) {
-        echo("[commonlib.gitlab] send status: project=$project commit=$commit status=$status")
-        _sendStatus(credentialId, project, commit, status)
+        echo("[commonlib.gitlab] send '$status': ${BASE_URL()}/$project/-/commit/$commitSha" + (commit == commitSha ? '' : " ($commit)"))
+        _sendStatus(credentialId, project, commitSha, status)
         return
     }
 
@@ -67,14 +81,14 @@ def sendStatus(Map args=[:], Closure callback=null) {
     // Execute
     //
 
-    echo("[commonlib.gitlab] send monitored status: project=$project commit=$commit")
-    _sendStatus(credentialId, project, commit, 'running')
+    echo("[commonlib.gitlab] monitor: ${BASE_URL()}/$project/-/commit/$commitSha" + (commit == commitSha ? '' : " ($commit)"))
+    _sendStatus(credentialId, project, commitSha, 'running')
     try {
         callback()
-        _sendStatus(credentialId, project, commit, 'success')
+        _sendStatus(credentialId, project, commitSha, 'success')
     }
     catch (Exception e) {
-        _sendStatus(credentialId, project, commit, e in FlowInterruptedException ? 'canceled' : 'failed')
+        _sendStatus(credentialId, project, commitSha, e in FlowInterruptedException ? 'canceled' : 'failed')
         throw e
     }
 }
@@ -113,8 +127,8 @@ private String _readString(Map args, String key, String pattern = '.*') {
 }
 
 
-private String _resolveCommit() {
-    return env.gitlabAfter ?: params.GIT_REF
+private String _resolveCommitSha(String raw) {
+    return sh(script: "#!/bin/bash -e\ngit rev-parse '${_gitRef(raw)}'", returnStdout: true).trim()
 }
 
 
@@ -142,30 +156,14 @@ private String _resolveProject() {
 }
 
 
-private String _revParse(String raw) {
-    return sh(script: "#!/bin/bash -e\ngit rev-parse '${_gitRef(raw)}'", returnStdout: true).trim()
-}
-
-
 private Map _sendStatus(String credentialId, String project, String commit, String status) {
-
     // Prepare parameters
-    try {
-        // It's not documented but GitLab API _can_ resolve branch names and
-        // tags as long as they don't contain dots (why?)... Because of this,
-        // we resolve the commit SHA explicitly.
-        commit = URLEncoder.encode(_revParse(commit))
-    }
-    catch (Exception e) {
-        echo("[commonlib.gitlab] WARNING: could not resolve commit SHA from reference: $commit")
-        return
-    }
-
+    commit = URLEncoder.encode(commit)
     project = URLEncoder.encode(project)
     status  = status.replaceAll('\\W+', '').toLowerCase()
 
     // Send request
-    def url = API_ROOT() + "projects/${project}/statuses/${commit}?state=${status}"
+    def url = BASE_URL() + "/api/v4/projects/${project}/statuses/${commit}?state=${status}"
     def responseText
     withCredentials([string(credentialsId: credentialId, variable: 'token')]) {
         responseText = sh(script: "#!/bin/bash -e\ncurl -sSL -X POST -H 'PRIVATE-TOKEN: " + token + "' '$url'", returnStdout: true)

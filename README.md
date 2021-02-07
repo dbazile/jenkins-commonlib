@@ -35,7 +35,6 @@ it for your own projects!
 Mostly unopinionated general-purpose build wrapper with some simple
 defaults and override hooks.
 
-
 #### Jenkinsfile
 
 ```groovy
@@ -173,7 +172,6 @@ app that can theoretically run side-by-side with the current release so you can
 run integration tests against the canary build before replacing the current
 version (i.e., releasing).
 
-
 #### Jenkinsfile
 
 ```groovy
@@ -261,6 +259,69 @@ Pausing so canary application at above URL can be inspected.
   break or confuse the deploy/release.
 
 
+### `gitlab`
+
+This module provides a consistent way of working with GitLab commit build
+statuses. Written because the current version of the GitLab plugin (v1.5.13)
+is finicky when it comes to sending status to the correct repo when used with
+pipeline libraries.
+
+#### Jenkinsfile
+
+```groovy
+library 'commonlib'
+
+
+node {
+
+    checkout scm
+
+    // Send arbitrary status immediately
+    gitlab.sendStatus(commit: 'tags/v1.2.3', status: 'success')
+
+    // -OR-
+
+    // Send 'running' when entering a block and 'success/failed/canceled'
+    // depending on how it exits
+    gitlab.sendStatus(commit: 'HEAD') {
+
+        // do things
+
+    }
+
+}
+```
+
+#### Console Output
+
+```
+[commonlib.gitlab] send 'success': https://gitlab.com/dbazile/test/-/commit/074057e08e70cd63a88164aef1b568d216b6aa0d (tags/v1.2.3)
+[Pipeline] withCredentials
+Masking supported pattern matches of $token
+[Pipeline] {
+[Pipeline] sh
+[Pipeline] }
+[Pipeline] // withCredentials
+[Pipeline] readJSON
+[Pipeline] sh
+[Pipeline] echo
+[commonlib.gitlab] monitor: https://gitlab.com/dbazile/test/-/commit/2dd62fc18cd551e639833c4d94cfecaec40dd700 (HEAD)
+[Pipeline] withCredentials
+Masking supported pattern matches of $token
+[Pipeline] {
+[Pipeline] sh
+[Pipeline] }
+[Pipeline] // withCredentials
+[Pipeline] readJSON
+```
+
+#### Shortcomings
+
+- The commit sniffing is better than the GitLab plugin in that it doesn't get
+  confused if called from a pipeline but I went with relative simplicity over
+  making it totally bulletproof.
+
+
 ### `versioning`
 
 Utility for automating a snapshot->RC->release dev cycle using Git tags and
@@ -281,7 +342,6 @@ GitFlow by using `branchDev` and `branchRelease` accordingly.
 
 This also targets Gradle because that's what I'm using right now but Maven
 should be simple enough to integrate the artifact info lookup calls.
-
 
 #### Jenkinsfile
 

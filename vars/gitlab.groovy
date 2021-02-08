@@ -57,7 +57,7 @@ def sendStatus(Map args=[:], Closure callback=null) {
     }
     catch (Exception e) {
         println("[commonlib.gitlab] WARNING: could not resolve commit SHA from reference: $ref")
-        commitSha = commit
+        throw e
     }
 
     if (status && callback) {

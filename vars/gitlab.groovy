@@ -133,6 +133,8 @@ private String _resolveCommitSha(String raw) {
 
 
 private String _resolveProject() {
+    // https://javadoc.jenkins.io/plugin/git/hudson/plugins/git/GitSCM.html
+    // https://javadoc.jenkins.io/plugin/git/hudson/plugins/git/UserRemoteConfig.html
     def url = scm.userRemoteConfigs.url[0]
     if (!url) {
         error('[commonlib.gitlab] could not resolve project; no repos configured')

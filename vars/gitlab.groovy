@@ -61,7 +61,7 @@ def sendStatus(Map args=[:], Closure callback=null) {
     }
 
     if (status && callback) {
-        error("[commonlib.gitlab] can't send arbitrary with block use")
+        error("[commonlib.gitlab] can't send arbitrary status with block use")
     }
     if (!status && !callback) {
         error("[commonlib.gitlab] must pass either an arbitrary status or define a block")

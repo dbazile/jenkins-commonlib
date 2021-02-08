@@ -23,7 +23,7 @@ def BASE_URL() { "https://gitlab.com" }
 
 
 /**
- * @param args.commit        can be a commit-SHA/branch/tag
+ * @param args.ref           can be a commit-SHA/branch/tag
  * @param args.credentialId  credential to use for GitLab's API (default: gitlab-api)
  * @param args.project       name of the GitLab project (default: autodetected)
  * @param args.status        status to send
@@ -31,7 +31,7 @@ def BASE_URL() { "https://gitlab.com" }
  */
 def sendStatus(Map args=[:], Closure callback=null) {
     args = [
-        commit: env.gitlabAfter    // present on builds triggered by GL plugin's webhook
+        ref:    env.gitlabAfter    // present on builds triggered by GL plugin's webhook
                 ?: params.GIT_REF  // job parameter that provides commit/branch/tag
                 ?: 'HEAD',         // whatever is currently checked out
         credentialId: 'gitlab-api',
@@ -44,7 +44,7 @@ def sendStatus(Map args=[:], Closure callback=null) {
     //
 
     def credentialId = _readString(args, 'credentialId', '^.+$')
-    def commit       = _gitRef(_readString(args, 'commit', '^.+$'))
+    def ref          = _gitRef(_readString(args, 'ref', '^.+$'))
     def project      = _readString(args, 'project', '^.+$')
     def status       = _readString(args, 'status')
 
@@ -53,11 +53,11 @@ def sendStatus(Map args=[:], Closure callback=null) {
     // we resolve the commit SHA explicitly.
     def commitSha
     try {
-        commitSha = _resolveCommitSha(commit)
+        commitSha = _resolveCommitSha(ref)
     }
     catch (Exception e) {
-        println("[commonlib.gitlab] WARNING: could not resolve commit SHA from reference: $commit")
-        return
+        println("[commonlib.gitlab] WARNING: could not resolve commit SHA from reference: $ref")
+        commitSha = commit
     }
 
     if (status && callback) {
@@ -72,7 +72,7 @@ def sendStatus(Map args=[:], Closure callback=null) {
     //
 
     if (status) {
-        println("[commonlib.gitlab] send '$status': ${BASE_URL()}/$project/-/commit/$commitSha" + (commit == commitSha ? '' : " ($commit)"))
+        println("[commonlib.gitlab] send '$status': ${BASE_URL()}/$project/-/commit/$commitSha" + (ref == commitSha ? '' : " ($ref)"))
         _sendStatus(credentialId, project, commitSha, status)
         return
     }
@@ -81,7 +81,7 @@ def sendStatus(Map args=[:], Closure callback=null) {
     // Execute
     //
 
-    println("[commonlib.gitlab] monitor: ${BASE_URL()}/$project/-/commit/$commitSha" + (commit == commitSha ? '' : " ($commit)"))
+    println("[commonlib.gitlab] monitor: ${BASE_URL()}/$project/-/commit/$commitSha" + (ref == commitSha ? '' : " ($ref)"))
     _sendStatus(credentialId, project, commitSha, 'running')
     try {
         callback()
@@ -128,7 +128,18 @@ private String _readString(Map args, String key, String pattern = '.*') {
 
 
 private String _resolveCommitSha(String raw) {
-    return sh(script: "#!/bin/bash -e\ngit rev-parse '${_gitRef(raw)}'", returnStdout: true).trim()
+    // HACK -- Check out repo if not already present
+    if (!fileExists('.git')) {
+        def url = scm.userRemoteConfigs.url[0]
+
+        println('[commonlib.gitlab] WARNING: .git dir not found; cloning into workspace')
+        sh("git clone --bare '${url}' .git")
+    }
+
+    def ref = _gitRef(raw)
+    return sh(script: "git rev-parse '$ref' || git rev-parse 'origin/$ref' || echo '$ref'", returnStdout: true)
+        .trim()
+        .split('\n')[-1]
 }
 
 

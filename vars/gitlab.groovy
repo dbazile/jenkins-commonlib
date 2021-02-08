@@ -56,7 +56,7 @@ def sendStatus(Map args=[:], Closure callback=null) {
         commitSha = _resolveCommitSha(commit)
     }
     catch (Exception e) {
-        echo("[commonlib.gitlab] WARNING: could not resolve commit SHA from reference: $commit")
+        println("[commonlib.gitlab] WARNING: could not resolve commit SHA from reference: $commit")
         return
     }
 
@@ -72,7 +72,7 @@ def sendStatus(Map args=[:], Closure callback=null) {
     //
 
     if (status) {
-        echo("[commonlib.gitlab] send '$status': ${BASE_URL()}/$project/-/commit/$commitSha" + (commit == commitSha ? '' : " ($commit)"))
+        println("[commonlib.gitlab] send '$status': ${BASE_URL()}/$project/-/commit/$commitSha" + (commit == commitSha ? '' : " ($commit)"))
         _sendStatus(credentialId, project, commitSha, status)
         return
     }
@@ -81,7 +81,7 @@ def sendStatus(Map args=[:], Closure callback=null) {
     // Execute
     //
 
-    echo("[commonlib.gitlab] monitor: ${BASE_URL()}/$project/-/commit/$commitSha" + (commit == commitSha ? '' : " ($commit)"))
+    println("[commonlib.gitlab] monitor: ${BASE_URL()}/$project/-/commit/$commitSha" + (commit == commitSha ? '' : " ($commit)"))
     _sendStatus(credentialId, project, commitSha, 'running')
     try {
         callback()
@@ -175,10 +175,10 @@ private Map _sendStatus(String credentialId, String project, String commit, Stri
     try {
         def res = readJSON(text: responseText)
         if (res.status != status) {
-            echo("[commonlib.gitlab] WARNING: ${responseText}")
+            println("[commonlib.gitlab] WARNING: ${responseText}")
         }
     }
     catch(Exception e) {
-        echo("[commonlib.gitlab] API returned unparseable JSON; raw value:\n---\n$responseText\n---")
+        println("[commonlib.gitlab] API returned unparseable JSON; raw value:\n---\n$responseText\n---")
     }
 }
